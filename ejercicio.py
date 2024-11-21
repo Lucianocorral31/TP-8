@@ -11,8 +11,6 @@ def mostrar_detalles_usuario():
         st.markdown("**Legajo:** 59158")
         st.markdown("**Nombre Completo:** Luciano Corral")
         st.markdown("**Comisión:** C7")
-        st.markdown("**Curso:** Análisis de Datos")
-        st.markdown("---")
 
 # Función para cargar archivo CSV en el centro de la página
 def cargar_datos_csv():
