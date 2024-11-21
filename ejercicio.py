@@ -1,25 +1,29 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy import stats
+import plotly.express as px
 import streamlit as st
+from scipy import stats
 
-# Función que muestra detalles personales
+# Función para mostrar los detalles del estudiante
 def mostrar_detalles_usuario():
-    st.markdown("#### Datos del Estudiante")
-    st.markdown("**ID de Estudiante:** 59158")
-    st.markdown("**Nombre Completo:** Luciano Corral")
-    st.markdown("**Curso:** C7")
+    with st.expander("Detalles del Alumno", expanded=True):
+        st.markdown("#### Información del Alumno")
+        st.markdown("**Legajo:** 59158")
+        st.markdown("**Nombre Completo:** Luciano Corral")
+        st.markdown("**Comisión:** C7")
+        st.markdown("**Curso:** Análisis de Datos")
+        st.markdown("---")
 
-# Función para cargar datos CSV desde el archivo
+# Función para cargar archivo CSV en el centro de la página
 def cargar_datos_csv():
-    archivo = st.sidebar.file_uploader("Selecciona un archivo CSV", type="csv")
+    st.title("Carga de Datos CSV")
+    archivo = st.file_uploader("Selecciona tu archivo CSV", type="csv", label_visibility="collapsed")
     if archivo:
         return pd.read_csv(archivo)
     return None
 
-# Función para procesar los datos y generar gráficos
-def generar_metricas_y_visualizaciones(datos, sucursal_seleccionada):
+# Función para procesar los datos y generar gráficos interactivos
+def mostrar_metricas_y_graficos(datos, sucursal_seleccionada):
     if sucursal_seleccionada != "Todas":
         datos = datos[datos["Sucursal"] == sucursal_seleccionada]
 
@@ -39,7 +43,7 @@ def generar_metricas_y_visualizaciones(datos, sucursal_seleccionada):
             st.error(f"El producto '{producto}' tiene valores no positivos en 'Unidades_vendidas'.")
             continue
 
-        # Cálculo de las métricas
+        # Cálculo de métricas
         unidades_totales = datos_producto["Unidades_vendidas"].sum()
         ingresos_totales = datos_producto["Ingreso_total"].sum()
         costos_totales = datos_producto["Costo_total"].sum()
@@ -47,46 +51,35 @@ def generar_metricas_y_visualizaciones(datos, sucursal_seleccionada):
         precio_unitario_promedio = ingresos_totales / unidades_totales
         margen_unitario_promedio = (ingresos_totales - costos_totales) / ingresos_totales * 100
 
-        # Comparar precio promedio con el global
-        precio_promedio_global = datos["Ingreso_total"].sum() / datos["Unidades_vendidas"].sum()
-        delta_precio = precio_unitario_promedio - precio_promedio_global
-        
-        precio_promedio_2024 = calcular_precio_por_ano(datos_producto, 2024)
-        precio_promedio_2023 = calcular_precio_por_ano(datos_producto, 2023)
-        
-        margen_2024 = calcular_margen_por_ano(datos_producto, 2024)
-        margen_2023 = calcular_margen_por_ano(datos_producto, 2023)
-        
-        unidades_2024 = calcular_unidades_por_ano(datos_producto, 2024)
-        unidades_2023 = calcular_unidades_por_ano(datos_producto, 2023)
-
         # Mostrar las métricas calculadas
-        st.header(f"Producto: {producto}")
-        st.metric("Precio Promedio", f"${precio_unitario_promedio:,.2f}", delta=f"{((precio_promedio_2024 / precio_promedio_2023) - 1) * 100:.2f}%")
-        st.metric("Margen Promedio", f"{margen_unitario_promedio:.2f}%", delta=f"{((margen_2024 / margen_2023) - 1) * 100:.2f}%")
-        st.metric("Unidades Vendidas", f"{unidades_totales:,}", delta=f"{((unidades_2024 / unidades_2023) - 1) * 100:.2f}%")
+        st.subheader(f"Análisis del Producto: {producto}")
+        st.write(f"**Precio Promedio:** ${precio_unitario_promedio:,.2f}")
+        st.write(f"**Margen Promedio:** {margen_unitario_promedio:.2f}%")
+        st.write(f"**Unidades Vendidas:** {unidades_totales:,}")
 
-        # Convertir a formato de fecha
-        datos_producto['Fecha'] = pd.to_datetime(datos_producto['Año'].astype(str) + '-' + datos_producto['Mes'].astype(str) + '-01')
-        datos_producto.sort_values('Fecha', inplace=True)
+        # Gráfico de evolución de ventas con Plotly
+        mostrar_grafico_evolucion(datos_producto, producto)
 
-        # Generación del gráfico de ventas
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(datos_producto["Fecha"], datos_producto["Unidades_vendidas"], label=f"Ventas de {producto}", color="purple")
+# Función para mostrar el gráfico de evolución de ventas interactivo
+def mostrar_grafico_evolucion(datos_producto, producto):
+    # Convertir la columna de fechas
+    datos_producto['Fecha'] = pd.to_datetime(datos_producto['Año'].astype(str) + '-' + datos_producto['Mes'].astype(str) + '-01')
+    datos_producto.sort_values('Fecha', inplace=True)
 
-        # Agregar línea de tendencia
-        x = np.arange(len(datos_producto))
-        y = datos_producto["Unidades_vendidas"].values
-        pendiente, intercepto, _, _, _ = stats.linregress(x, y)
-        tendencia_linea = pendiente * x + intercepto
-        ax.plot(datos_producto["Fecha"], tendencia_linea, label="Tendencia", color="orange", linestyle="--")
-
-        ax.set_title(f"Evolución de Ventas Mensuales para {producto}", fontsize=14)
-        ax.set_xlabel("Fecha", fontsize=12)
-        ax.set_ylabel("Unidades Vendidas", fontsize=12)
-        ax.legend(loc="upper left")
-        plt.xticks(rotation=45)
-        st.pyplot(fig)
+    # Crear gráfico interactivo con Plotly
+    fig = px.line(datos_producto, x='Fecha', y='Unidades_vendidas', title=f"Evolución de Ventas Mensuales - {producto}",
+                  labels={"Fecha": "Mes", "Unidades_vendidas": "Unidades Vendidas"})
+    fig.update_traces(line_color="royalblue", name=f"Ventas de {producto}")
+    
+    # Agregar línea de tendencia
+    x = np.arange(len(datos_producto))
+    y = datos_producto["Unidades_vendidas"].values
+    slope, intercept, _, _, _ = stats.linregress(x, y)
+    tendencia = slope * x + intercept
+    fig.add_scatter(x=datos_producto['Fecha'], y=tendencia, mode="lines", name="Tendencia", line=dict(dash="dash", color="tomato"))
+    
+    # Mostrar gráfico interactivo
+    st.plotly_chart(fig, use_container_width=True)
 
 # Funciones auxiliares para cálculos por año
 def calcular_precio_por_ano(datos_producto, anio):
@@ -105,16 +98,104 @@ def calcular_unidades_por_ano(datos_producto, anio):
 
 # Función principal para ejecutar la aplicación
 def ejecutar_app():
-    st.sidebar.title("Subir Datos")
+    # Configuración de la página para quitar la cabecera de Streamlit
+    st.set_page_config(page_title="Análisis de Ventas", layout="centered", initial_sidebar_state="collapsed")
+
+    # Usar un fondo con gradiente animado
+    html_string = """
+    <style>
+    /* Eliminar la cabecera de Streamlit */
+    header {visibility: hidden;}
+
+    /* Fondo animado con gradiente */
+    body {
+        background: linear-gradient(45deg, #34D399, #2F855A);
+        font-family: 'Lato', sans-serif;
+        animation: fadein 3s ease-in-out;
+        margin: 0;
+        padding: 0;
+    }
+
+    @keyframes fadein {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+
+    /* Estilos de las cabeceras */
+    h1, h2, h3, h4, h5 {
+        font-family: 'Lato', sans-serif;
+        color: #ffffff;
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    /* Estilo para los botones */
+    .css-1d391kg {
+        background-color: #38B2AC;
+        color: white;
+        border-radius: 12px;
+        padding: 12px 24px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .css-1d391kg:hover {
+        background-color: #319795;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        transform: translateY(-2px);
+    }
+
+    /* Estilo para las tablas */
+    .stTable {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .stTable th, .stTable td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .stTable th {
+        background-color: #2F855A;
+        color: #ffffff;
+    }
+
+    .stTable td {
+        background-color: #F7FAFC;
+    }
+
+    /* Estilo para los contenedores */
+    .container {
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        margin-bottom: 20px;
+    }
+
+    </style>
+    """
+    # Insertar el HTML y CSS personalizado
+    st.markdown(html_string, unsafe_allow_html=True)
+
+    # Mostrar los detalles del usuario
     mostrar_detalles_usuario()
+
+    # Cargar los datos
     datos = cargar_datos_csv()
+
     if datos is not None:
+        # Selección de sucursal
         sucursales_disponibles = ["Todas"] + datos["Sucursal"].unique().tolist()
-        sucursal_seleccionada = st.sidebar.selectbox("Seleccionar Sucursal", sucursales_disponibles)
-        st.header(f"Análisis de {'Todas las Sucursales' if sucursal_seleccionada == 'Todas' else sucursal_seleccionada}")
-        generar_metricas_y_visualizaciones(datos, sucursal_seleccionada)
+        sucursal_seleccionada = st.selectbox("Selecciona la Sucursal para análisis", sucursales_disponibles)
+
+        # Mostrar métricas y gráficos
+        mostrar_metricas_y_graficos(datos, sucursal_seleccionada)
     else:
-        st.write("Por favor, carga un archivo CSV desde el panel lateral.")
+        st.warning("Por favor, sube un archivo CSV para continuar.")
 
 if __name__ == "__main__":
     ejecutar_app()
