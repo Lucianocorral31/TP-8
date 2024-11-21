@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-import plotly.express as px
 import streamlit as st
+import matplotlib.pyplot as plt
 from scipy import stats
 
 # Función para mostrar los detalles del estudiante
@@ -17,13 +17,10 @@ def cargar_datos_csv():
     st.title("Carga de Datos CSV")
     archivo = st.file_uploader("Selecciona tu archivo CSV", type="csv", label_visibility="collapsed")
     if archivo:
-        datos = pd.read_csv(archivo)
-        st.write("Primeras filas del archivo CSV cargado:")
-        st.write(datos.head())  # Muestra las primeras filas del archivo CSV
-        return datos
+        return pd.read_csv(archivo)
     return None
 
-# Función para procesar los datos y generar gráficos interactivos
+# Función para procesar los datos y generar gráficos
 def mostrar_metricas_y_graficos(datos, sucursal_seleccionada):
     if sucursal_seleccionada != "Todas":
         datos = datos[datos["Sucursal"] == sucursal_seleccionada]
@@ -58,29 +55,34 @@ def mostrar_metricas_y_graficos(datos, sucursal_seleccionada):
         st.write(f"**Margen Promedio:** {margen_unitario_promedio:.2f}%")
         st.write(f"**Unidades Vendidas:** {unidades_totales:,}")
 
-        # Gráfico de evolución de ventas con Plotly
+        # Gráfico de evolución de ventas
         mostrar_grafico_evolucion(datos_producto, producto)
 
-# Función para mostrar el gráfico de evolución de ventas interactivo
+# Función para mostrar el gráfico de evolución de ventas con Matplotlib
 def mostrar_grafico_evolucion(datos_producto, producto):
     # Convertir la columna de fechas
     datos_producto['Fecha'] = pd.to_datetime(datos_producto['Año'].astype(str) + '-' + datos_producto['Mes'].astype(str) + '-01')
     datos_producto.sort_values('Fecha', inplace=True)
 
-    # Crear gráfico interactivo con Plotly
-    fig = px.line(datos_producto, x='Fecha', y='Unidades_vendidas', title=f"Evolución de Ventas Mensuales - {producto}",
-                  labels={"Fecha": "Mes", "Unidades_vendidas": "Unidades Vendidas"})
-    fig.update_traces(line_color="royalblue", name=f"Ventas de {producto}")
-    
+    # Crear gráfico de líneas
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(datos_producto['Fecha'], datos_producto['Unidades_vendidas'], label=f"Ventas de {producto}", color='royalblue')
+
     # Agregar línea de tendencia
     x = np.arange(len(datos_producto))
     y = datos_producto["Unidades_vendidas"].values
     slope, intercept, _, _, _ = stats.linregress(x, y)
     tendencia = slope * x + intercept
-    fig.add_scatter(x=datos_producto['Fecha'], y=tendencia, mode="lines", name="Tendencia", line=dict(dash="dash", color="tomato"))
-    
-    # Mostrar gráfico interactivo
-    st.plotly_chart(fig, use_container_width=True)
+    ax.plot(datos_producto['Fecha'], tendencia, label="Tendencia", linestyle='--', color='tomato')
+
+    # Etiquetas y título
+    ax.set_title(f"Evolución de Ventas Mensuales - {producto}")
+    ax.set_xlabel("Mes")
+    ax.set_ylabel("Unidades Vendidas")
+    ax.legend()
+
+    # Mostrar gráfico interactivo en Streamlit
+    st.pyplot(fig)
 
 # Funciones auxiliares para cálculos por año
 def calcular_precio_por_ano(datos_producto, anio):
