@@ -17,7 +17,10 @@ def cargar_datos_csv():
     st.title("Carga de Datos CSV")
     archivo = st.file_uploader("Selecciona tu archivo CSV", type="csv", label_visibility="collapsed")
     if archivo:
-        return pd.read_csv(archivo)
+        datos = pd.read_csv(archivo)
+        st.write("Primeras filas del archivo CSV cargado:")
+        st.write(datos.head())  # Muestra las primeras filas del archivo CSV
+        return datos
     return None
 
 # Función para procesar los datos y generar gráficos interactivos
