@@ -5,13 +5,10 @@ from scipy import stats
 import streamlit as st
 
 # ATENCION: Debe colocar la dirección en la que ha sido publicada la aplicación en la siguiente línea
-# url = 'https://tp8-555555.streamlit.app/' # URL del deploy
+# url = 'https://tp-8-59158-luciano-corral.streamlit.app' # URL del deploy
 
 # Función para mostrar la información del alumno
 def mostrar_informacion_alumno():
-    st.markdown('**Legajo:** 55.555')
-    st.markdown('**Nombre:** Juan Pérez')
-    st.markdown('**Comisión:** C1')
     st.markdown('**Legajo:** 59.158')
     st.markdown('**Nombre:** Luciano Corral')
     st.markdown('**Comisión:** C7')
